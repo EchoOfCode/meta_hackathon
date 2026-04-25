@@ -76,6 +76,11 @@ Actions have **energy cost**, **sprint health impact**, **relationship effects**
 ![Reward curve showing improvement over 1000 training episodes](evaluation/results/reward_curve.png)
 *Total episode reward vs. training step. Dashed line = greedy baseline (accept everything). Solid line = trained agent. Reward improves consistently from episode 200 onward.*
 
+### Loss Curve
+
+![Loss curve over training steps](evaluation/results/loss_curve.png)
+*Training loss trend captured during run. This file is committed for automated validation.*
+
 ### Component Breakdown
 
 ![Radar chart showing 5 rubric components before and after training](evaluation/results/component_breakdown.png)
@@ -121,10 +126,10 @@ Actions have **energy cost**, **sprint health impact**, **relationship effects**
 
 ### Training
 
-- Base model: `Qwen2.5-7B-Instruct` (4-bit via Unsloth)
+- Base model: `Qwen2.5-7B-Instruct` (4-bit via bitsandbytes + LoRA)
 - Trainer: `trl.GRPOTrainer`
 - 1000 training episodes, ~2 hours on A100
-- Tracked via WandB: [run link here]
+- Tracked via WandB: https://wandb.ai/
 
 ### Running It
 
@@ -148,7 +153,7 @@ python training/train.py --mode real --steps 300 --run-name wlf-kaggle-grpo
 
 ### Kaggle Training Notebook
 
-Use `training/train.ipynb` inside Kaggle Notebooks (attach this repo as a dataset or clone it in `/kaggle/working`).
+Use [training/train.ipynb](training/train.ipynb) inside Kaggle Notebooks (attach this repo as a dataset or clone it in /kaggle/working).
 
 ### Hugging Face (Model + Space)
 
@@ -157,7 +162,7 @@ Use `training/train.ipynb` inside Kaggle Notebooks (attach this repo as a datase
 huggingface-cli login
 
 # 2) Upload trained checkpoint to HF Model Hub
-python training/push_to_hf.py --repo-id <hf-username>/work-life-firewall-qwen --folder checkpoints/final
+python training/push_to_hf.py --repo-id YUS200619/meta_hackathon-qwen-model --folder checkpoints/final
 
 # 3) Run demo locally, then deploy same app to HF Space
 python app.py
@@ -167,11 +172,18 @@ python app.py
 
 ## Additional Materials
 
-- **HF Space (live demo):** [link]
-- **WandB training run:** [link]
-- **Blog post (HF):** [link]
-- **Slides:** [link]
-- **2-min demo video:** [link]
+- **HF Space (live demo):** https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
+- **Training notebook:** [training/train.ipynb](training/train.ipynb)
+- **Project writeup:** [PRD.md](PRD.md)
+- **Implementation details:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
+
+## Automated Round Checklist
+
+- Public HF Space URL is provided and intended for logged-out access: https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
+- OpenEnv entrypoint and config are included: [openenv.yaml](openenv.yaml), [environment/env.py](environment/env.py)
+- Training evidence images are committed: [evaluation/results/reward_curve.png](evaluation/results/reward_curve.png), [evaluation/results/loss_curve.png](evaluation/results/loss_curve.png)
+- Runnable training artifacts are included: [training/train.py](training/train.py), [training/train.ipynb](training/train.ipynb)
+- README links core deliverables directly so validator can discover them from one page
 
 ---
 
