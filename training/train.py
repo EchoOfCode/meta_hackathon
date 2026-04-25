@@ -90,6 +90,10 @@ def train_real_grpo(
     output_dir: Path,
     run_name: str,
     use_wandb: bool,
+    num_generations: int,
+    max_completion_length: int,
+    per_device_train_batch_size: int,
+    use_gradient_checkpointing: bool,
 ) -> dict:
     try:
         from datasets import Dataset
@@ -153,7 +157,8 @@ def train_real_grpo(
     )
     model = get_peft_model(model, lora_cfg)
     model.enable_input_require_grads()
-    model.gradient_checkpointing_enable()
+    if use_gradient_checkpointing:
+        model.gradient_checkpointing_enable()
     # Ensure LoRA params are trainable for GRPO optimizer/scaler path.
     for name, param in model.named_parameters():
         if "lora_" in name:
@@ -195,14 +200,14 @@ def train_real_grpo(
         output_dir=str(output_dir),
         run_name=run_name,
         learning_rate=2e-5,
-        max_completion_length=256,
-        num_generations=4,
-        generation_batch_size=4,
+        max_completion_length=max_completion_length,
+        num_generations=num_generations,
+        generation_batch_size=num_generations,
         logging_steps=5,
         max_steps=steps,
         # Keep accumulation at 1 to avoid unstable accelerated GRPO accumulation path.
         gradient_accumulation_steps=1,
-        per_device_train_batch_size=4,
+        per_device_train_batch_size=per_device_train_batch_size,
         bf16=False,
         fp16=False,
         report_to=["wandb"] if use_wandb else [],
@@ -247,6 +252,10 @@ def main() -> None:
     parser.add_argument("--hf-token", type=str, default=None)
     parser.add_argument("--push-to-hf", action="store_true")
     parser.add_argument("--hf-repo-id", type=str, default=None)
+    parser.add_argument("--speed-preset", choices=["fast", "balanced", "quality"], default="balanced")
+    parser.add_argument("--num-generations", type=int, default=None)
+    parser.add_argument("--max-completion-length", type=int, default=None)
+    parser.add_argument("--batch-size", type=int, default=None)
     args = parser.parse_args()
 
     save_dir = Path(args.save_dir)
@@ -259,11 +268,46 @@ def main() -> None:
     )
     use_wandb = (not args.no_wandb) and cred["wandb_ready"]
 
+    # Runtime presets for Kaggle T4.
+    if args.speed_preset == "fast":
+        preset_num_generations = 2
+        preset_max_completion_length = 96
+        preset_batch_size = 2
+        use_gradient_checkpointing = False
+    elif args.speed_preset == "quality":
+        preset_num_generations = 4
+        preset_max_completion_length = 192
+        preset_batch_size = 4
+        use_gradient_checkpointing = True
+    else:  # balanced
+        preset_num_generations = 2
+        preset_max_completion_length = 128
+        preset_batch_size = 2
+        use_gradient_checkpointing = True
+
+    num_generations = args.num_generations or preset_num_generations
+    max_completion_length = args.max_completion_length or preset_max_completion_length
+    batch_size = args.batch_size or preset_batch_size
+
     if args.mode == "real":
-        metrics = train_real_grpo(args.steps, args.seed, save_dir, args.run_name, use_wandb=use_wandb)
+        metrics = train_real_grpo(
+            args.steps,
+            args.seed,
+            save_dir,
+            args.run_name,
+            use_wandb=use_wandb,
+            num_generations=num_generations,
+            max_completion_length=max_completion_length,
+            per_device_train_batch_size=batch_size,
+            use_gradient_checkpointing=use_gradient_checkpointing,
+        )
     else:
         metrics = simulate_training(args.steps, args.seed)
         metrics["mode"] = "simulate"
+    metrics["speed_preset"] = args.speed_preset
+    metrics["num_generations"] = num_generations
+    metrics["max_completion_length"] = max_completion_length
+    metrics["batch_size"] = batch_size
     metrics["wandb_enabled"] = use_wandb
     metrics["hf_logged_in"] = cred["hf_ready"]
 
