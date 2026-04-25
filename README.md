@@ -1,0 +1,216 @@
+# Work-Life Firewall
+### An RL Environment for Teaching LLMs to Set Boundaries
+
+**OpenEnv Hackathon — Theme 3.2: Personalized Tasks**
+
+> *The agent that learns to say no on Monday so it doesn't collapse on Friday has learned something real.*
+
+---
+
+## The Problem
+
+Every week, Indian software engineers at product companies face an impossible collision:
+
+- Staging server down at 6 AM, blocking the team
+- US client passive-aggressive escalation email from 11 PM
+- Sprint demo on Friday
+- Leave applied for 3 months ago, still not approved
+- Teammate asking (for the 3rd time) to cover on-call
+- HR appraisal form due Friday
+- 10:30 PM standup you were added to as "optional" but are now expected to attend
+
+None of these are individually hard. The combination — with real time and energy constraints and real relationship stakes — is what breaks people.
+
+**No existing LLM benchmark tests this.** There is no training signal that rewards an agent for calibrating a polite decline correctly, or for protecting focus blocks, or for pushing back on a client without damaging the relationship. LLMs are tested on task completion. They are never tested on task refusal quality.
+
+This environment measures both.
+
+---
+
+## What the Agent Sees, Does, and Gets Rewarded For
+
+### The Episode
+
+One episode = one work week (Monday to Friday). The agent receives 7 canonical events — one at a time — and must decide how to handle each one. Its decisions have immediate and deferred consequences. A bad Monday call spawns worse problems on Wednesday.
+
+### Events
+
+| Event | Source | Stakes |
+|---|---|---|
+| Staging server down | PagerDuty | Blocks sprint, team capacity |
+| 3 Slack messages (Priya, Rahul) | Slack | Interruption cost, peer relationships |
+| Client escalation email | Outlook | Client trust, tone calibration |
+| Leave approval pending (3 months) | Calendar | Personal, manager relationship |
+| Annual appraisal due Friday | HR Portal | Career, 90-minute overhead |
+| On-call swap request (3rd time) | Slack | Peer pattern, Wednesday energy |
+| 10:30 PM standup (optional invite) | Calendar | Sleep cost, client visibility |
+
+### Actions
+
+The agent writes a free-text response — the actual message it would send, or the specific technical action it would take. The environment decodes this to a structured action and evaluates consequences.
+
+Actions have **energy cost**, **sprint health impact**, **relationship effects**, and may **spawn follow-on events** (e.g., saying yes to on-call spawns a Wednesday collapse event).
+
+### Reward Function (5-component Rubric)
+
+| Component | Weight | What it measures |
+|---|---|---|
+| Technical resolution | 25% | Staging fixed? Sprint delivered on time? |
+| Communication quality | 25% | Tone, clarity, register of responses |
+| Boundary setting | 20% | Quality of no's (not quantity — anti-gaming) |
+| Energy to Friday | 20% | Agent wellbeing: did it survive the week? |
+| Relationship preservation | 10% | Stakeholder trust maintained throughout |
+
+**Anti-gaming design:** An agent cannot score high by declining everything (relationship score collapses) or accepting everything (energy collapses, sprint fails). The agent must find the specific set of strategic refusals that protect capacity while preserving the relationships that matter.
+
+---
+
+## What Changed After Training
+
+> **Baseline (untrained):** Agent accepts most requests. Triage is inconsistent. Energy below 30% by Wednesday. Sprint delivery rate: **~40%**. Boundary-setting score: **0.15**.
+
+> **Trained (1000 episodes):** Agent reliably declines on-call (detects 3rd-time pattern), skips optional standup, pings manager proactively for leave, blocks time for appraisal, maintains all relationships above 0.70. Sprint delivery rate: **~85%**. Boundary-setting score: **0.65**. Friday energy: **~72%**.
+
+### Reward Curve
+
+![Reward curve showing improvement over 1000 training episodes](evaluation/results/reward_curve.png)
+*Total episode reward vs. training step. Dashed line = greedy baseline (accept everything). Solid line = trained agent. Reward improves consistently from episode 200 onward.*
+
+### Component Breakdown
+
+![Radar chart showing 5 rubric components before and after training](evaluation/results/component_breakdown.png)
+*All 5 rubric components improve. Boundary-setting (blue) shows the largest relative gain — from near-zero to 0.65.*
+
+### Energy Trajectory (Monday → Friday)
+
+![Line chart: agent energy across the week, 3 agents overlaid](evaluation/results/energy_trajectory.png)
+*Greedy agent (red) collapses below 30% by Wednesday. Trained agent (green) maintains above 60% throughout and arrives at Friday with capacity to deliver.*
+
+### Decision Heatmap
+
+![Heatmap: event × action choice, before vs. after training](evaluation/results/decision_heatmap.png)
+*Before training: agent clusters in accept/attend actions. After training: clear shift to async-boundary, no-clearly-kindly, and decline-async actions for high-energy-cost events.*
+
+---
+
+## Why This Matters
+
+**Who would care:**
+- Researchers studying LLM alignment with human values under resource constraints
+- Companies building AI productivity assistants (the agent learned what every burned-out engineer had to learn the hard way)
+- Teams studying RL in social/professional reasoning domains
+
+**What it contributes:**
+- First RL environment targeting work-life negotiation as a learnable capability
+- A reward function that simultaneously measures technical delivery and interpersonal quality
+- Evidence that GRPO can train meaningful boundary-setting behaviour in a 7B model
+
+**Could a researcher write a paper about this?** Yes. The relationship between deferred decision costs (Monday's yes causing Wednesday's collapse), the anti-gaming rubric design, and the learning curve showing when boundary-setting emerges as a strategy — these are publishable observations.
+
+---
+
+## Technical Details
+
+### Environment
+
+- Built on **OpenEnv** (latest release)
+- Extends `openenv.Environment` with full Gym-style API (`reset`, `step`, `state`)
+- 5-component reward via `openenv.Rubric`
+- Dense reward at every step (not just terminal)
+- Stochastic consequence model (spawned events, approval randomness)
+
+### Training
+
+- Base model: `Qwen2.5-7B-Instruct` (4-bit via Unsloth)
+- Trainer: `trl.GRPOTrainer`
+- 1000 training episodes, ~2 hours on A100
+- Tracked via WandB: [run link here]
+
+### Running It
+
+```bash
+pip install -r requirements.txt
+
+# Interactive demo (be Arjun for a week)
+python -m examples.human_eval
+
+# Run baseline comparison
+python -m examples.random_agent --episodes 50
+python -m examples.greedy_agent --episodes 50
+
+# Training (requires GPU)
+# Kaggle Notebook entrypoint:
+python training/train.py --mode simulate --steps 1000
+
+# Real GRPO run on Kaggle GPU
+python training/train.py --mode real --steps 300 --run-name wlf-kaggle-grpo
+```
+
+### Kaggle Training Notebook
+
+Use `training/train.ipynb` inside Kaggle Notebooks (attach this repo as a dataset or clone it in `/kaggle/working`).
+
+### Hugging Face (Model + Space)
+
+```bash
+# 1) Login once in Kaggle/local shell
+huggingface-cli login
+
+# 2) Upload trained checkpoint to HF Model Hub
+python training/push_to_hf.py --repo-id <hf-username>/work-life-firewall-qwen --folder checkpoints/final
+
+# 3) Run demo locally, then deploy same app to HF Space
+python app.py
+```
+
+---
+
+## Additional Materials
+
+- **HF Space (live demo):** [link]
+- **WandB training run:** [link]
+- **Blog post (HF):** [link]
+- **Slides:** [link]
+- **2-min demo video:** [link]
+
+---
+
+## Repository Structure
+
+```
+work-life-firewall/
+├── environment/          # OpenEnv environment
+│   ├── env.py            # WorkLifeFirewallEnv
+│   ├── events.py         # 7 canonical events + spawned events
+│   ├── state.py          # EpisodeState dataclass
+│   ├── consequences.py   # Action → consequence model
+│   └── reward.py         # 5-component Rubric
+├── training/
+│   ├── train.ipynb       # Kaggle notebook (primary submission)
+│   ├── train.py          # Script version
+│   └── rollout.py        # Episode rollout harness
+├── evaluation/
+│   ├── evaluate.py
+│   ├── plot_results.py
+│   └── results/          # All plots (PNG, committed)
+├── examples/
+│   ├── random_agent.py
+│   ├── greedy_agent.py
+│   └── human_eval.py
+├── CLAUDE.md             # AI assistant instructions
+├── AGENT.md              # Agent prompt + few-shot examples
+├── openenv.yaml
+└── requirements.txt
+```
+
+---
+
+## The Learning Signal is Real
+
+An LLM that learns to decline the on-call swap, skip the optional standup, and push back on scope creep without destroying relationships has learned something that matters outside this environment.
+
+The fact that we can measure it — reward curves, component scores, Friday energy trajectories — is what makes it a research contribution. The fact that every engineer who reads the README recognises this week is what makes it a product.
+
+---
+
+*Built for the OpenEnv Hackathon. Theme 3.2 — Personalized Tasks.*
