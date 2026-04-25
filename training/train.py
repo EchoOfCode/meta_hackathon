@@ -139,6 +139,27 @@ def train_real_grpo(
         use_gradient_checkpointing="unsloth",  # saves ~30 % VRAM
         random_state=seed,
     )
+    # Ensure LoRA params are trainable for GRPO optimizer/scaler path.
+    if hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
+    for name, param in model.named_parameters():
+        if "lora_" in name:
+            param.requires_grad = True
+
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    all_params = sum(p.numel() for p in model.parameters())
+    if trainable_params == 0:
+        raise RuntimeError(
+            "LoRA adapter has 0 trainable parameters. "
+            "This usually means an incompatible Unsloth/TRL stack in this runtime. "
+            "Try reinstalling pinned versions and restarting Kaggle kernel:\n"
+            "pip install -U 'trl==0.23.1' 'transformers==4.57.2' "
+            "'unsloth==2025.11.1' 'unsloth_zoo==2025.11.2'"
+        )
+    print(
+        f"Trainable params: {trainable_params:,} / {all_params:,} "
+        f"({100.0 * trainable_params / all_params:.2f}%)"
+    )
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
