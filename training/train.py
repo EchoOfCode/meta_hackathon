@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from statistics import mean
 import sys
@@ -46,9 +47,46 @@ def _build_grpo_dataset(env: WorkLifeFirewallEnv, episodes: int) -> List[Dict[st
     return rows
 
 
+def setup_credentials(
+    wandb_api_key: str | None,
+    wandb_project: str | None,
+    wandb_entity: str | None,
+    hf_token: str | None,
+) -> Dict[str, bool]:
+    status = {"wandb_ready": False, "hf_ready": False}
+
+    if wandb_api_key:
+        os.environ["WANDB_API_KEY"] = wandb_api_key
+    if wandb_project:
+        os.environ["WANDB_PROJECT"] = wandb_project
+    if wandb_entity:
+        os.environ["WANDB_ENTITY"] = wandb_entity
+    status["wandb_ready"] = bool(os.getenv("WANDB_API_KEY"))
+
+    if hf_token:
+        os.environ["HF_TOKEN"] = hf_token
+        os.environ["HUGGINGFACE_HUB_TOKEN"] = hf_token
+        try:
+            from huggingface_hub import login
+
+            login(token=hf_token, add_to_git_credential=False)
+            status["hf_ready"] = True
+        except Exception:
+            status["hf_ready"] = False
+    else:
+        status["hf_ready"] = bool(os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN"))
+    return status
+
+
 # ── real GRPO training (Kaggle GPU) ──────────────────────────────────────────
 
-def train_real_grpo(steps: int, seed: int, output_dir: Path, run_name: str) -> dict:
+def train_real_grpo(
+    steps: int,
+    seed: int,
+    output_dir: Path,
+    run_name: str,
+    use_wandb: bool,
+) -> dict:
     try:
         # Import Unsloth first so its patches apply before TRL/Transformers.
         import unsloth  # noqa: F401
@@ -132,7 +170,7 @@ def train_real_grpo(steps: int, seed: int, output_dir: Path, run_name: str) -> d
         per_device_train_batch_size=1,
         bf16=bf16_supported,
         fp16=not bf16_supported,
-        report_to=["wandb"],
+        report_to=["wandb"] if use_wandb else [],
     )
 
     trainer = GRPOTrainer(
@@ -170,16 +208,49 @@ def main() -> None:
     parser.add_argument("--run-name", type=str, default="work-life-firewall-grpo")
     parser.add_argument("--save-dir", type=str, default="checkpoints")
     parser.add_argument("--output",   type=str, default="evaluation/results/training_metrics.json")
+    parser.add_argument("--wandb-api-key", type=str, default=None)
+    parser.add_argument("--wandb-project", type=str, default=None)
+    parser.add_argument("--wandb-entity", type=str, default=None)
+    parser.add_argument("--no-wandb", action="store_true")
+    parser.add_argument("--hf-token", type=str, default=None)
+    parser.add_argument("--push-to-hf", action="store_true")
+    parser.add_argument("--hf-repo-id", type=str, default=None)
     args = parser.parse_args()
 
     save_dir = Path(args.save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
+    cred = setup_credentials(
+        wandb_api_key=args.wandb_api_key,
+        wandb_project=args.wandb_project,
+        wandb_entity=args.wandb_entity,
+        hf_token=args.hf_token,
+    )
+    use_wandb = (not args.no_wandb) and cred["wandb_ready"]
 
     if args.mode == "real":
-        metrics = train_real_grpo(args.steps, args.seed, save_dir, args.run_name)
+        metrics = train_real_grpo(args.steps, args.seed, save_dir, args.run_name, use_wandb=use_wandb)
     else:
         metrics = simulate_training(args.steps, args.seed)
         metrics["mode"] = "simulate"
+    metrics["wandb_enabled"] = use_wandb
+    metrics["hf_logged_in"] = cred["hf_ready"]
+
+    if args.push_to_hf:
+        if not args.hf_repo_id:
+            raise ValueError("--push-to-hf requires --hf-repo-id")
+        if not cred["hf_ready"]:
+            raise RuntimeError(
+                "HF token not configured. Provide --hf-token or set HF_TOKEN/HUGGINGFACE_HUB_TOKEN."
+            )
+        from huggingface_hub import HfApi
+
+        folder = Path(metrics.get("output_dir", ""))
+        if not folder.exists():
+            raise FileNotFoundError(f"Model folder missing for upload: {folder}")
+        api = HfApi()
+        api.create_repo(repo_id=args.hf_repo_id, repo_type="model", private=False, exist_ok=True)
+        api.upload_folder(repo_id=args.hf_repo_id, repo_type="model", folder_path=str(folder))
+        metrics["hf_repo_id"] = args.hf_repo_id
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

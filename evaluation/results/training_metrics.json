@@ -1,18 +1,15 @@
 {
-  "steps": 10,
-  "mean_reward": 1.841,
-  "final_reward": 2.201,
+  "steps": 5,
+  "mean_reward": 1.801,
+  "final_reward": 2.121,
   "reward_curve": [
     1.4809999999999999,
-    1.561,
     1.641,
-    1.721,
     1.801,
-    1.8809999999999998,
-    1.9609999999999999,
-    2.041,
-    2.1210000000000004,
-    2.201
+    1.961,
+    2.121
   ],
-  "mode": "simulate"
+  "mode": "simulate",
+  "wandb_enabled": false,
+  "hf_logged_in": false
 }
