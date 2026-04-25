@@ -94,6 +94,7 @@ def train_real_grpo(
     max_completion_length: int,
     per_device_train_batch_size: int,
     use_gradient_checkpointing: bool,
+    model_id: str,
 ) -> dict:
     try:
         from datasets import Dataset
@@ -126,7 +127,6 @@ def train_real_grpo(
     # ── load model with stable Transformers+PEFT (4-bit + LoRA) ──────────────
     # Avoid Unsloth GRPO monkey-patch mismatch with TRL in Kaggle runtimes.
     # Use upstream model id so runtime does not auto-enter Unsloth-specific codepaths.
-    model_id = "Qwen/Qwen2.5-7B-Instruct"
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
@@ -232,6 +232,7 @@ def train_real_grpo(
         "mode": "real",
         "train_rows": len(prompts),
         "output_dir": str(final_dir),
+        "model_id": model_id,
     }
 
 
@@ -253,6 +254,8 @@ def main() -> None:
     parser.add_argument("--push-to-hf", action="store_true")
     parser.add_argument("--hf-repo-id", type=str, default=None)
     parser.add_argument("--speed-preset", choices=["fast", "balanced", "quality"], default="balanced")
+    parser.add_argument("--size-preset", choices=["small", "medium", "large"], default="large")
+    parser.add_argument("--model-id", type=str, default=None, help="Override model id directly")
     parser.add_argument("--num-generations", type=int, default=None)
     parser.add_argument("--max-completion-length", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
@@ -289,6 +292,16 @@ def main() -> None:
     max_completion_length = args.max_completion_length or preset_max_completion_length
     batch_size = args.batch_size or preset_batch_size
 
+    # Model size presets for quick iteration vs final quality.
+    if args.model_id:
+        model_id = args.model_id
+    elif args.size_preset == "small":
+        model_id = "Qwen/Qwen2.5-0.5B-Instruct"
+    elif args.size_preset == "medium":
+        model_id = "Qwen/Qwen2.5-1.5B-Instruct"
+    else:
+        model_id = "Qwen/Qwen2.5-7B-Instruct"
+
     if args.mode == "real":
         metrics = train_real_grpo(
             args.steps,
@@ -300,6 +313,7 @@ def main() -> None:
             max_completion_length=max_completion_length,
             per_device_train_batch_size=batch_size,
             use_gradient_checkpointing=use_gradient_checkpointing,
+            model_id=model_id,
         )
     else:
         metrics = simulate_training(args.steps, args.seed)
@@ -308,6 +322,8 @@ def main() -> None:
     metrics["num_generations"] = num_generations
     metrics["max_completion_length"] = max_completion_length
     metrics["batch_size"] = batch_size
+    metrics["size_preset"] = args.size_preset
+    metrics["model_id"] = model_id
     metrics["wandb_enabled"] = use_wandb
     metrics["hf_logged_in"] = cred["hf_ready"]
 
