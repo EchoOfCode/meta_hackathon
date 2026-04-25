@@ -1,0 +1,14 @@
+openenv
+numpy
+matplotlib
+pandas
+unsloth
+trl
+transformers
+datasets
+torch
+bitsandbytes
+accelerate
+wandb
+gradio
+huggingface_hub

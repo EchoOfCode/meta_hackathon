@@ -1,0 +1,13 @@
+name: work-life-firewall
+version: 1.0.0
+description: >
+  An OpenEnv RL environment where an LLM agent handles a realistic software
+  engineering work week and learns strategic boundary-setting.
+theme: "3.2 - Personalized Tasks"
+author: "Yusuf"
+python: ">=3.10"
+dependencies:
+  - openenv
+  - numpy
+  - matplotlib
+entry_point: environment.env:WorkLifeFirewallEnv
