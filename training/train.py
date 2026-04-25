@@ -88,12 +88,12 @@ def train_real_grpo(
     use_wandb: bool,
 ) -> dict:
     try:
-        # Import Unsloth first so its patches apply before TRL/Transformers.
-        import unsloth  # noqa: F401
         from datasets import Dataset
         from trl import GRPOConfig, GRPOTrainer
-        from unsloth import FastLanguageModel
         import torch
+        # Import FastLanguageModel after TRL to avoid incompatible GRPO monkey patches.
+        # This is slower than full Unsloth patching, but much more stable on Kaggle T4.
+        from unsloth import FastLanguageModel
     except Exception as exc:
         msg = str(exc)
         if "mergekit" in msg.lower():
@@ -166,7 +166,8 @@ def train_real_grpo(
         num_generations=4,
         logging_steps=5,
         max_steps=steps,
-        gradient_accumulation_steps=4,
+        # Keep accumulation at 1 to avoid unstable accelerated GRPO accumulation path.
+        gradient_accumulation_steps=1,
         per_device_train_batch_size=1,
         bf16=bf16_supported,
         fp16=not bf16_supported,
