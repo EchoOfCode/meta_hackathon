@@ -8,6 +8,10 @@ from statistics import mean
 import sys
 from typing import Dict, List
 
+# Hard-disable Unsloth monkey patching in this script to avoid GRPO signature mismatch.
+os.environ.setdefault("UNSLOTH_DISABLE", "1")
+os.environ.setdefault("UNSLOTH_DISABLE_PATCHING", "1")
+
 # ── project root on sys.path ──────────────────────────────────────────────────
 # train.py lives at  <root>/training/train.py  so parents[1] == <root>
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,7 +121,8 @@ def train_real_grpo(
 
     # ── load model with stable Transformers+PEFT (4-bit + LoRA) ──────────────
     # Avoid Unsloth GRPO monkey-patch mismatch with TRL in Kaggle runtimes.
-    model_id = "unsloth/Qwen2.5-7B-Instruct-bnb-4bit"
+    # Use upstream model id so runtime does not auto-enter Unsloth-specific codepaths.
+    model_id = "Qwen/Qwen2.5-7B-Instruct"
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
