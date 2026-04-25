@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 RESULTS_DIR = Path("evaluation/results")
@@ -16,11 +17,37 @@ def _load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _training_series(metrics: dict, candidates: list[str]) -> list[float]:
+    direct = []
+    for key in candidates:
+        if key in metrics and isinstance(metrics[key], list):
+            direct = [float(v) for v in metrics[key]]
+            break
+    if direct:
+        return direct
+
+    values = []
+    for row in metrics.get("log_history", []):
+        if not isinstance(row, dict):
+            continue
+        for key in candidates:
+            if key in row:
+                values.append(float(row[key]))
+                break
+    return values
+
+
 def plot_reward_curve() -> None:
     metrics = _load_json(RESULTS_DIR / "training_metrics.json")
-    curve = metrics.get("reward_curve", [])
+    summary = _load_json(RESULTS_DIR / "evaluation_summary.json")
+    curve = _training_series(
+        metrics,
+        ["reward_curve", "reward", "rewards", "objective/rlhf_reward", "rlhf_reward", "mean_reward"],
+    )
     if not curve:
-        curve = [0.2, 0.4, 0.5, 0.8, 1.0, 1.1]
+        curve = summary.get("trained_proxy", {}).get("reward_per_episode", [])
+    if not curve:
+        raise RuntimeError("No reward curve found in training_metrics.json or evaluation_summary.json")
     plt.figure(figsize=(8, 4))
     plt.plot(curve, label="training reward")
     plt.title("Reward Curve")
@@ -34,14 +61,9 @@ def plot_reward_curve() -> None:
 
 def plot_loss_curve() -> None:
     metrics = _load_json(RESULTS_DIR / "training_metrics.json")
-    loss_curve = metrics.get("loss_curve", [])
+    loss_curve = _training_series(metrics, ["loss_curve", "loss", "train_loss"])
     if not loss_curve:
-        reward_curve = metrics.get("reward_curve", [])
-        if reward_curve:
-            max_reward = max(reward_curve)
-            loss_curve = [round(max_reward - v + 0.05, 4) for v in reward_curve]
-        else:
-            loss_curve = [1.8, 1.5, 1.3, 1.15, 1.05, 0.98]
+        raise RuntimeError("No loss curve found in training_metrics.json")
     plt.figure(figsize=(8, 4))
     plt.plot(loss_curve, label="training loss", color="#d1495b")
     plt.title("Loss Curve")
@@ -54,6 +76,10 @@ def plot_loss_curve() -> None:
 
 
 def plot_component_breakdown() -> None:
+    summary = _load_json(RESULTS_DIR / "evaluation_summary.json")
+    if not summary:
+        raise RuntimeError("Missing evaluation_summary.json for component breakdown")
+
     labels = [
         "technical_resolution",
         "communication_quality",
@@ -61,8 +87,13 @@ def plot_component_breakdown() -> None:
         "energy_to_friday",
         "relationship_preservation",
     ]
-    before = [0.4, 0.35, 0.2, 0.3, 0.45]
-    after = [0.8, 0.75, 0.65, 0.72, 0.78]
+    before_map = summary.get("greedy", {}).get("component_means", {})
+    after_map = summary.get("trained_proxy", {}).get("component_means", {})
+    if not before_map or not after_map:
+        raise RuntimeError("Component means missing in evaluation_summary.json")
+    before = [float(before_map.get(k, 0.0)) for k in labels]
+    after = [float(after_map.get(k, 0.0)) for k in labels]
+
     x = range(len(labels))
     plt.figure(figsize=(9, 4))
     plt.bar([i - 0.2 for i in x], before, width=0.4, label="before")
@@ -77,10 +108,23 @@ def plot_component_breakdown() -> None:
 
 
 def plot_energy_trajectory() -> None:
+    summary = _load_json(RESULTS_DIR / "evaluation_summary.json")
+    if not summary:
+        raise RuntimeError("Missing evaluation_summary.json for energy trajectory")
+
     days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
-    random_line = [0.87, 0.62, 0.38, 0.29, 0.21]
-    greedy_line = [0.87, 0.55, 0.31, 0.22, 0.18]
-    trained_line = [0.87, 0.79, 0.74, 0.71, 0.69]
+    day_keys = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    def _line(policy: str) -> list[float]:
+        src = summary.get(policy, {}).get("mean_day_energy", {})
+        if not src:
+            raise RuntimeError(f"mean_day_energy missing for policy: {policy}")
+        return [float(src[k]) for k in day_keys]
+
+    random_line = _line("random")
+    greedy_line = _line("greedy")
+    trained_line = _line("trained_proxy")
+
     plt.figure(figsize=(8, 4))
     plt.plot(days, random_line, label="random")
     plt.plot(days, greedy_line, label="greedy")
@@ -94,21 +138,36 @@ def plot_energy_trajectory() -> None:
 
 
 def plot_decision_heatmap() -> None:
-    # Keep lightweight dependency footprint: simple imshow over matrix.
-    import numpy as np
+    summary = _load_json(RESULTS_DIR / "evaluation_summary.json")
+    if not summary:
+        raise RuntimeError("Missing evaluation_summary.json for decision heatmap")
 
-    matrix = np.array(
-        [
-            [0.2, 0.3, 0.8],
-            [0.3, 0.2, 0.9],
-            [0.4, 0.3, 0.85],
-            [0.2, 0.4, 0.8],
-        ]
-    )
+    policy_keys = ["random", "greedy", "trained_proxy"]
+    all_actions = set()
+    for key in policy_keys:
+        all_actions.update(summary.get(key, {}).get("action_counts", {}).keys())
+    if not all_actions:
+        raise RuntimeError("No action_counts found in evaluation_summary.json")
+
+    top_actions = sorted(
+        all_actions,
+        key=lambda action: sum(summary.get(k, {}).get("action_counts", {}).get(action, 0) for k in policy_keys),
+        reverse=True,
+    )[:10]
+
+    matrix = []
+    for key in policy_keys:
+        counts = summary.get(key, {}).get("action_counts", {})
+        total = max(1, sum(counts.values()))
+        matrix.append([counts.get(action, 0) / total for action in top_actions])
+    matrix = np.array(matrix)
+
     plt.figure(figsize=(6, 4))
     plt.imshow(matrix, cmap="YlGn", aspect="auto")
     plt.colorbar(label="selection rate")
-    plt.title("Decision Heatmap (Before -> After)")
+    plt.yticks(range(len(policy_keys)), policy_keys)
+    plt.xticks(range(len(top_actions)), top_actions, rotation=30, ha="right")
+    plt.title("Decision Heatmap (Action Selection Rate)")
     plt.tight_layout()
     plt.savefig(RESULTS_DIR / "decision_heatmap.png")
     plt.close()

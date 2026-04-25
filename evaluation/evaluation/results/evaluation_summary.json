@@ -1,0 +1,15 @@
+{
+  "episodes": 50,
+  "random": {
+    "mean_reward": 0.690184,
+    "mean_friday_energy_pct": 63.72
+  },
+  "greedy": {
+    "mean_reward": 0.94586,
+    "mean_friday_energy_pct": 81.08
+  },
+  "trained_proxy": {
+    "mean_reward": 1.4809999999999999,
+    "mean_friday_energy_pct": 100
+  }
+}
