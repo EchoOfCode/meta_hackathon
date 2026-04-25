@@ -8,12 +8,40 @@ import gradio as gr
 from environment.env import WorkLifeFirewallEnv
 
 
-def _action_for_policy(policy_style: str) -> str:
+def _action_for_policy(policy_style: str, event_id: str) -> str:
+    strategic_actions = {
+        "E1_staging": "I will fix staging first, post an incident update in 15 minutes, and share ETA.",
+        "E2_slack": "I will respond async after I stabilize staging and batch replies at 11:30 AM.",
+        "E3_client_email": "I acknowledge the urgency and will send a concrete recovery timeline by today EOD.",
+        "E4_leave": "I am escalating leave approval with context and requesting a decision by tomorrow noon.",
+        "E5_appraisal": "I will block 90 minutes tomorrow and submit appraisal before Thursday EOD.",
+        "E6_oncall": "I cannot swap on-call this week; I can help async with runbook notes.",
+        "E7_standup": "I will skip the 10:30 PM standup and send an async status update instead.",
+    }
+    people_pleaser_actions = {
+        "E1_staging": "Sure, I will handle it now and stay online until everything is done.",
+        "E2_slack": "Sure, I will reply to everyone immediately.",
+        "E3_client_email": "Sure, I will take full ownership and deliver whatever is needed tonight.",
+        "E4_leave": "No worries, I can postpone leave if needed.",
+        "E5_appraisal": "Sure, I will do appraisal tonight after work.",
+        "E6_oncall": "Sure, I will take your on-call shift again.",
+        "E7_standup": "Sure, I will attend the 10:30 PM standup.",
+    }
+    balanced_actions = {
+        "E1_staging": "I will handle staging now and share progress updates every 30 minutes.",
+        "E2_slack": "I will prioritize urgent Slack items first and answer the rest asynchronously.",
+        "E3_client_email": "I will send a calm status note with next steps and timeline.",
+        "E4_leave": "I will follow up respectfully on leave approval and ask for a clear response date.",
+        "E5_appraisal": "I will reserve focused time this week and finish appraisal before Friday.",
+        "E6_oncall": "I cannot fully swap this time, but I can help with handover notes.",
+        "E7_standup": "I will share async updates and join only if there is a critical blocker.",
+    }
+
     if policy_style == "strategic":
-        return "I will send a clear async update, protect focus, and commit a concrete timeline."
+        return strategic_actions.get(event_id, "I will send a clear async update and commit a timeline.")
     if policy_style == "people_pleaser":
-        return "Sure, I will do it now."
-    return "I will handle this with a clear plan."
+        return people_pleaser_actions.get(event_id, "Sure, I will do it now.")
+    return balanced_actions.get(event_id, "I will handle this with a clear plan.")
 
 
 def _run_single_episode(policy_style: str, seed: int, randomize_order: bool) -> Tuple[str, Dict[str, object], Dict[str, float]]:
@@ -25,7 +53,7 @@ def _run_single_episode(policy_style: str, seed: int, randomize_order: bool) -> 
 
     while not done:
         event = obs["event"]
-        action = _action_for_policy(policy_style)
+        action = _action_for_policy(policy_style, event["id"])
 
         obs, reward, done, info = env.step(action)
         logs.append(

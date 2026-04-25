@@ -84,8 +84,8 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### Reward Curve
 
-![Reward curve showing improvement over 1000 training episodes](evaluation/results/reward_curve_20260426.png)
-*Total episode reward vs. training step. Dashed line = greedy baseline (accept everything). Solid line = trained agent. Reward improves consistently from episode 200 onward.*
+![Reward curve from committed training artifact](evaluation/results/reward_curve_20260426.png)
+*Total episode reward vs. logged training steps from the committed artifact file.*
 
 ### Loss Curve
 
@@ -95,12 +95,12 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 ### Component Breakdown
 
 ![Radar chart showing 5 rubric components before and after training](evaluation/results/component_breakdown_20260426.png)
-*All 5 rubric components improve. Boundary-setting (blue) shows the largest relative gain — from near-zero to 0.65.*
+*Rubric component comparison generated from evaluation logs (technical resolution, communication quality, boundary setting, energy to Friday, relationship preservation).*
 
 ### Energy Trajectory (Monday → Friday)
 
 ![Line chart: agent energy across the week, 3 agents overlaid](evaluation/results/energy_trajectory_20260426.png)
-*Greedy agent (red) collapses below 30% by Wednesday. Trained agent (green) maintains above 60% throughout and arrives at Friday with capacity to deliver.*
+*Day-wise energy trajectory (Monday to Friday) across evaluated policy variants from the committed summary JSON.*
 
 ### Raw Evidence JSON
 
@@ -124,7 +124,7 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 **What it contributes:**
 - First RL environment targeting work-life negotiation as a learnable capability
 - A reward function that simultaneously measures technical delivery and interpersonal quality
-- Evidence that GRPO can train meaningful boundary-setting behaviour in a 7B model
+- Evidence that GRPO-style optimization can train meaningful boundary-setting behavior in this domain
 
 **Could a researcher write a paper about this?** Yes. The relationship between deferred decision costs (Monday's yes causing Wednesday's collapse), the anti-gaming rubric design, and the learning curve showing when boundary-setting emerges as a strategy — these are publishable observations.
 
@@ -182,6 +182,10 @@ huggingface-cli login
 
 # 2) Upload trained checkpoint to HF Model Hub
 python training/push_to_hf.py --repo-id YUS200619/meta_hackathon-qwen-model --folder checkpoints/final
+
+# If your latest checkpoint is in a different folder, pass that path instead.
+# Example:
+# python training/push_to_hf.py --repo-id YUS200619/meta_hackathon-qwen-model --folder checkpoints
 
 # 3) Run demo locally, then deploy same app to HF Space
 python app.py
