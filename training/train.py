@@ -30,11 +30,14 @@ def simulate_training(steps: int, seed: int) -> dict:
     for i in range(steps):
         run = run_rule_based_episode(env)
         rewards.append(run["total_reward"] + min(0.8, i / max(1, steps) * 0.8))
+    max_reward = max(rewards) if rewards else 1.0
+    loss_curve = [round(max_reward - r + 0.05, 4) for r in rewards]
     return {
         "steps": steps,
         "mean_reward": mean(rewards),
         "final_reward": rewards[-1] if rewards else 0.0,
         "reward_curve": rewards,
+        "loss_curve": loss_curve,
     }
 
 
@@ -132,10 +135,16 @@ def train_real_grpo(
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.float16,
     )
+    if torch.cuda.is_available():
+        # 4-bit training must keep load and train on the exact same device.
+        # Pin to GPU 0 in Kaggle to avoid Accelerate device-map mismatch.
+        device_map = {"": 0}
+    else:
+        device_map = "auto"
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         quantization_config=bnb_config,
-        device_map="auto",
+        device_map=device_map,
         torch_dtype=torch.float16,
     )
     tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True)
@@ -210,6 +219,7 @@ def train_real_grpo(
         per_device_train_batch_size=per_device_train_batch_size,
         bf16=False,
         fp16=False,
+        no_cuda=False,
         report_to=["wandb"] if use_wandb else [],
     )
 
@@ -220,12 +230,42 @@ def train_real_grpo(
         train_dataset=dataset,
         processing_class=tokenizer,
     )
-    trainer.train()
+    train_result = trainer.train()
 
     # FIX 5: save merged 16-bit weights (Unsloth helper) for easy inference later
     final_dir = output_dir / "final"
     model.save_pretrained(str(final_dir))
     tokenizer.save_pretrained(str(final_dir))
+
+    log_history = [row for row in trainer.state.log_history if isinstance(row, dict)]
+    loss_curve = [float(row["loss"]) for row in log_history if "loss" in row]
+    reward_keys = [
+        "reward",
+        "rewards",
+        "objective/rlhf_reward",
+        "rlhf_reward",
+        "mean_reward",
+        "train_reward",
+        "reward_mean",
+    ]
+    reward_curve = []
+    for row in log_history:
+        for key in reward_keys:
+            if key in row:
+                reward_curve.append(float(row[key]))
+                break
+
+    wandb_run_url = None
+    wandb_run_name = None
+    if use_wandb:
+        try:
+            import wandb
+
+            if wandb.run is not None:
+                wandb_run_url = wandb.run.url
+                wandb_run_name = wandb.run.name
+        except Exception:
+            pass
 
     return {
         "steps": steps,
@@ -233,6 +273,14 @@ def train_real_grpo(
         "train_rows": len(prompts),
         "output_dir": str(final_dir),
         "model_id": model_id,
+        "train_runtime_seconds": float(train_result.metrics.get("train_runtime", 0.0)),
+        "train_samples_per_second": float(train_result.metrics.get("train_samples_per_second", 0.0)),
+        "train_steps_per_second": float(train_result.metrics.get("train_steps_per_second", 0.0)),
+        "loss_curve": loss_curve,
+        "reward_curve": reward_curve,
+        "log_history": log_history,
+        "wandb_run_url": wandb_run_url,
+        "wandb_run_name": wandb_run_name,
     }
 
 
