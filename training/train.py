@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import unsloth  # Must be imported before trl/transformers/peft for patching.
 from pathlib import Path
 from statistics import mean
 import sys
@@ -90,9 +91,6 @@ def train_real_grpo(
     try:
         from datasets import Dataset
         from trl import GRPOConfig, GRPOTrainer
-        import torch
-        # Import FastLanguageModel after TRL to avoid incompatible GRPO monkey patches.
-        # This is slower than full Unsloth patching, but much more stable on Kaggle T4.
         from unsloth import FastLanguageModel
     except Exception as exc:
         msg = str(exc)
@@ -177,8 +175,7 @@ def train_real_grpo(
         return rewards
 
     # ── GRPO config ───────────────────────────────────────────────────────────
-    # T4/P100 do not support bf16; Ampere+ does.
-    bf16_supported = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+    # Kaggle T4 path: force fp16 and disable bf16.
     cfg = GRPOConfig(
         output_dir=str(output_dir),
         run_name=run_name,
@@ -191,8 +188,8 @@ def train_real_grpo(
         # Keep accumulation at 1 to avoid unstable accelerated GRPO accumulation path.
         gradient_accumulation_steps=1,
         per_device_train_batch_size=4,
-        bf16=bf16_supported,
-        fp16=not bf16_supported,
+        bf16=False,
+        fp16=True,
         report_to=["wandb"] if use_wandb else [],
     )
 
