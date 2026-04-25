@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import unsloth  # Must be imported before trl/transformers/peft for patching.
 from pathlib import Path
 from statistics import mean
 import sys
@@ -91,7 +90,9 @@ def train_real_grpo(
     try:
         from datasets import Dataset
         from trl import GRPOConfig, GRPOTrainer
-        from unsloth import FastLanguageModel
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+        from peft import LoraConfig, get_peft_model
+        import torch
     except Exception as exc:
         msg = str(exc)
         if "mergekit" in msg.lower():
@@ -114,32 +115,41 @@ def train_real_grpo(
     prompts = _build_grpo_dataset(env, episodes=max(8, steps // 20))
     dataset = Dataset.from_list(prompts)
 
-    # ── load model with Unsloth (4-bit + LoRA) ────────────────────────────────
-    # FIX 2: load_in_4bit=True keeps peak VRAM well under 16 GB.
-    # FIX 3: get_peft_model wraps with LoRA so only ~1-2 % of params are trained.
+    # ── load model with stable Transformers+PEFT (4-bit + LoRA) ──────────────
+    # Avoid Unsloth GRPO monkey-patch mismatch with TRL in Kaggle runtimes.
     model_id = "unsloth/Qwen2.5-7B-Instruct-bnb-4bit"
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=model_id,
-        max_seq_length=512,
-        dtype=None,          # auto-detect (bf16 on Ampere+)
+    bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
     )
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=16,                          # LoRA rank
-        target_modules=[               # standard Qwen2 attention + MLP targets
-            "q_proj", "k_proj", "v_proj", "o_proj",
-            "gate_proj", "up_proj", "down_proj",
-        ],
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        quantization_config=bnb_config,
+        device_map="auto",
+        torch_dtype=torch.float16,
+    )
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True)
+    lora_cfg = LoraConfig(
+        r=16,
         lora_alpha=16,
         lora_dropout=0.0,
         bias="none",
-        use_gradient_checkpointing="unsloth",  # saves ~30 % VRAM
-        random_state=seed,
+        target_modules=[
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ],
+        task_type="CAUSAL_LM",
     )
+    model = get_peft_model(model, lora_cfg)
+    model.enable_input_require_grads()
+    model.gradient_checkpointing_enable()
     # Ensure LoRA params are trainable for GRPO optimizer/scaler path.
-    if hasattr(model, "enable_input_require_grads"):
-        model.enable_input_require_grads()
     for name, param in model.named_parameters():
         if "lora_" in name:
             param.requires_grad = True
@@ -204,11 +214,8 @@ def train_real_grpo(
 
     # FIX 5: save merged 16-bit weights (Unsloth helper) for easy inference later
     final_dir = output_dir / "final"
-    model.save_pretrained_merged(
-        str(final_dir),
-        tokenizer,
-        save_method="merged_16bit",
-    )
+    model.save_pretrained(str(final_dir))
+    tokenizer.save_pretrained(str(final_dir))
 
     return {
         "steps": steps,
