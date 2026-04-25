@@ -1,0 +1,12 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Notebook/runtime artifacts
+.ipynb_checkpoints/
+wandb/
+submission_artifacts/
+
+# OS/editor
+.DS_Store
+Thumbs.db

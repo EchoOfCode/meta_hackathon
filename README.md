@@ -65,11 +65,22 @@ Actions have **energy cost**, **sprint health impact**, **relationship effects**
 
 ---
 
-## What Changed After Training
+## Latest Committed Results (Evidence Files)
 
-> **Baseline (untrained):** Agent accepts most requests. Triage is inconsistent. Energy below 30% by Wednesday. Sprint delivery rate: **~40%**. Boundary-setting score: **0.15**.
+The repository includes run artifacts under [evaluation/results](evaluation/results):
 
-> **Trained (1000 episodes):** Agent reliably declines on-call (detects 3rd-time pattern), skips optional standup, pings manager proactively for leave, blocks time for appraisal, maintains all relationships above 0.70. Sprint delivery rate: **~85%**. Boundary-setting score: **0.65**. Friday energy: **~72%**.
+- [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json)
+- [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)
+- 5 generated plots (reward, loss, component breakdown, energy trajectory, decision heatmap)
+
+From the currently committed evidence files:
+
+- Training metrics mode: **simulate**
+- Training reward progression: **1.481 → 2.181** over 8 logged steps
+- Evaluation episodes per policy: **6**
+- Mean reward: **random 0.760**, **greedy 0.944**, **trained_proxy 1.481**
+
+For full GPU runs (real mode, WandB logging, and updated artifacts), use [training/train.ipynb](training/train.ipynb) and then replace files in [evaluation/results](evaluation/results) with the generated outputs.
 
 ### Reward Curve
 
@@ -90,6 +101,11 @@ Actions have **energy cost**, **sprint health impact**, **relationship effects**
 
 ![Line chart: agent energy across the week, 3 agents overlaid](evaluation/results/energy_trajectory.png)
 *Greedy agent (red) collapses below 30% by Wednesday. Trained agent (green) maintains above 60% throughout and arrives at Friday with capacity to deliver.*
+
+### Raw Evidence JSON
+
+- Training log: [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json)
+- Evaluation summary: [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)
 
 ### Decision Heatmap
 
@@ -126,10 +142,10 @@ Actions have **energy cost**, **sprint health impact**, **relationship effects**
 
 ### Training
 
-- Base model: `Qwen2.5-7B-Instruct` (4-bit via bitsandbytes + LoRA)
 - Trainer: `trl.GRPOTrainer`
-- 1000 training episodes, ~2 hours on A100
-- Tracked via WandB: https://wandb.ai/
+- Model family: `Qwen2.5-Instruct` (size preset selectable: small / medium / large)
+- Quantization: default 4-bit path with optional `--no-4bit` fallback for runtime stability
+- WandB project: https://wandb.ai/yusufindian09-aaa/meta_hackathon
 
 ### Running It
 
@@ -149,6 +165,9 @@ python training/train.py --mode simulate --steps 1000
 
 # Real GRPO run on Kaggle GPU
 python training/train.py --mode real --steps 300 --run-name wlf-kaggle-grpo
+
+# Stable fallback on constrained Kaggle runtimes
+python training/train.py --mode real --size-preset small --steps 30 --batch-size 1 --num-generations 1 --max-completion-length 64 --no-4bit
 ```
 
 ### Kaggle Training Notebook
@@ -182,6 +201,7 @@ python app.py
 - Public HF Space URL is provided and intended for logged-out access: https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
 - OpenEnv entrypoint and config are included: [openenv.yaml](openenv.yaml), [environment/env.py](environment/env.py)
 - Training evidence images are committed: [evaluation/results/reward_curve.png](evaluation/results/reward_curve.png), [evaluation/results/loss_curve.png](evaluation/results/loss_curve.png)
+- Raw metrics evidence is committed: [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json), [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)
 - Runnable training artifacts are included: [training/train.py](training/train.py), [training/train.ipynb](training/train.ipynb)
 - README links core deliverables directly so validator can discover them from one page
 
