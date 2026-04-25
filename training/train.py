@@ -55,9 +55,21 @@ def train_real_grpo(steps: int, seed: int, output_dir: Path, run_name: str) -> d
         # FIX 1: Use Unsloth's FastLanguageModel instead of plain AutoModelForCausalLM.
         #        This enables 4-bit loading + LoRA so the 7B model fits in Kaggle's ~16 GB VRAM.
         from unsloth import FastLanguageModel
-    except ImportError as exc:
+    except Exception as exc:
+        msg = str(exc)
+        if "mergekit" in msg.lower():
+            raise RuntimeError(
+                "GRPO dependency missing: mergekit.\n"
+                "Run in Kaggle notebook:\n"
+                "  pip install -U mergekit\n"
+                "If TRL still fails, reinstall stack:\n"
+                "  pip install -U trl unsloth unsloth_zoo transformers datasets peft bitsandbytes accelerate"
+            ) from exc
         raise RuntimeError(
-            "Missing training deps. Install requirements on a Kaggle GPU notebook."
+            "Failed to import real-training dependencies.\n"
+            "Run in Kaggle notebook:\n"
+            "  pip install -r requirements.txt\n"
+            "If you see torch compatibility warnings, keep going unless training crashes."
         ) from exc
 
     # ── build prompt dataset ──────────────────────────────────────────────────
