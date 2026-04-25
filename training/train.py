@@ -11,6 +11,10 @@ from typing import Dict, List
 # Hard-disable Unsloth monkey patching in this script to avoid GRPO signature mismatch.
 os.environ.setdefault("UNSLOTH_DISABLE", "1")
 os.environ.setdefault("UNSLOTH_DISABLE_PATCHING", "1")
+# Kaggle often exposes 2 GPUs; 4-bit + PEFT + GRPO is more stable on one GPU.
+# Keep this before torch import paths in training code.
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 # ── project root on sys.path ──────────────────────────────────────────────────
 # train.py lives at  <root>/training/train.py  so parents[1] == <root>
@@ -98,6 +102,7 @@ def train_real_grpo(
     per_device_train_batch_size: int,
     use_gradient_checkpointing: bool,
     model_id: str,
+    load_in_4bit: bool,
 ) -> dict:
     try:
         from datasets import Dataset
@@ -130,15 +135,21 @@ def train_real_grpo(
     # ── load model with stable Transformers+PEFT (4-bit + LoRA) ──────────────
     # Avoid Unsloth GRPO monkey-patch mismatch with TRL in Kaggle runtimes.
     # Use upstream model id so runtime does not auto-enter Unsloth-specific codepaths.
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.float16,
-    )
+    bnb_config = None
+    if load_in_4bit:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+        )
     if torch.cuda.is_available():
         # 4-bit training must keep load and train on the exact same device.
-        # Pin to GPU 0 in Kaggle to avoid Accelerate device-map mismatch.
-        device_map = {"": 0}
+        # Use LOCAL_RANK when present so Accelerate and model load agree.
+        local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+        cuda_count = torch.cuda.device_count()
+        device_index = local_rank if 0 <= local_rank < cuda_count else 0
+        torch.cuda.set_device(device_index)
+        device_map = {"": device_index}
     else:
         device_map = "auto"
     model = AutoModelForCausalLM.from_pretrained(
@@ -168,6 +179,9 @@ def train_real_grpo(
     model.enable_input_require_grads()
     if use_gradient_checkpointing:
         model.gradient_checkpointing_enable()
+    else:
+        # Avoid hidden defaults enabling checkpointing in some stacks.
+        model.gradient_checkpointing_disable()
     # Ensure LoRA params are trainable for GRPO optimizer/scaler path.
     for name, param in model.named_parameters():
         if "lora_" in name:
@@ -230,6 +244,8 @@ def train_real_grpo(
         train_dataset=dataset,
         processing_class=tokenizer,
     )
+    # Extra safety: avoid DataParallel path with quantized PEFT models.
+    trainer.args._n_gpu = 1
     train_result = trainer.train()
 
     # FIX 5: save merged 16-bit weights (Unsloth helper) for easy inference later
@@ -273,6 +289,7 @@ def train_real_grpo(
         "train_rows": len(prompts),
         "output_dir": str(final_dir),
         "model_id": model_id,
+        "load_in_4bit": load_in_4bit,
         "train_runtime_seconds": float(train_result.metrics.get("train_runtime", 0.0)),
         "train_samples_per_second": float(train_result.metrics.get("train_samples_per_second", 0.0)),
         "train_steps_per_second": float(train_result.metrics.get("train_steps_per_second", 0.0)),
@@ -304,6 +321,7 @@ def main() -> None:
     parser.add_argument("--speed-preset", choices=["fast", "balanced", "quality"], default="balanced")
     parser.add_argument("--size-preset", choices=["small", "medium", "large"], default="large")
     parser.add_argument("--model-id", type=str, default=None, help="Override model id directly")
+    parser.add_argument("--no-4bit", action="store_true", help="Disable 4-bit quantization (bitsandbytes)")
     parser.add_argument("--num-generations", type=int, default=None)
     parser.add_argument("--max-completion-length", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
@@ -362,6 +380,7 @@ def main() -> None:
             per_device_train_batch_size=batch_size,
             use_gradient_checkpointing=use_gradient_checkpointing,
             model_id=model_id,
+            load_in_4bit=not args.no_4bit,
         )
     else:
         metrics = simulate_training(args.steps, args.seed)
