@@ -204,7 +204,7 @@ def train_real_grpo(
         gradient_accumulation_steps=1,
         per_device_train_batch_size=4,
         bf16=False,
-        fp16=True,
+        fp16=False,
         report_to=["wandb"] if use_wandb else [],
     )
 
