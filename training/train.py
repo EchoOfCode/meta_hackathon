@@ -164,11 +164,12 @@ def train_real_grpo(
         learning_rate=2e-5,
         max_completion_length=256,
         num_generations=4,
+        generation_batch_size=4,
         logging_steps=5,
         max_steps=steps,
         # Keep accumulation at 1 to avoid unstable accelerated GRPO accumulation path.
         gradient_accumulation_steps=1,
-        per_device_train_batch_size=1,
+        per_device_train_batch_size=4,
         bf16=bf16_supported,
         fp16=not bf16_supported,
         report_to=["wandb"] if use_wandb else [],
