@@ -50,11 +50,12 @@ def _build_grpo_dataset(env: WorkLifeFirewallEnv, episodes: int) -> List[Dict[st
 
 def train_real_grpo(steps: int, seed: int, output_dir: Path, run_name: str) -> dict:
     try:
+        # Import Unsloth first so its patches apply before TRL/Transformers.
+        import unsloth  # noqa: F401
         from datasets import Dataset
         from trl import GRPOConfig, GRPOTrainer
-        # FIX 1: Use Unsloth's FastLanguageModel instead of plain AutoModelForCausalLM.
-        #        This enables 4-bit loading + LoRA so the 7B model fits in Kaggle's ~16 GB VRAM.
         from unsloth import FastLanguageModel
+        import torch
     except Exception as exc:
         msg = str(exc)
         if "mergekit" in msg.lower():
@@ -117,7 +118,8 @@ def train_real_grpo(steps: int, seed: int, output_dir: Path, run_name: str) -> d
         return rewards
 
     # ── GRPO config ───────────────────────────────────────────────────────────
-    # FIX 4: added fp16/bf16 flag and removed deprecated fields for trl>=0.9
+    # T4/P100 do not support bf16; Ampere+ does.
+    bf16_supported = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
     cfg = GRPOConfig(
         output_dir=str(output_dir),
         run_name=run_name,
@@ -128,7 +130,8 @@ def train_real_grpo(steps: int, seed: int, output_dir: Path, run_name: str) -> d
         max_steps=steps,
         gradient_accumulation_steps=4,
         per_device_train_batch_size=1,
-        bf16=True,           # use bf16 on Kaggle A100/T4; set to fp16=True for older GPUs
+        bf16=bf16_supported,
+        fp16=not bf16_supported,
         report_to=["wandb"],
     )
 
