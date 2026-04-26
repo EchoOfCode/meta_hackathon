@@ -166,9 +166,10 @@ with gr.Blocks(title="Work-Life Firewall") as demo:
 
 
 if __name__ == "__main__":
+    on_hugging_face_space = bool(os.getenv("SPACE_ID"))
     demo.launch(
         server_name="0.0.0.0",
         server_port=int(os.getenv("PORT", "7860")),
-        share=True,
+        share=not on_hugging_face_space,
         show_error=True,
     )

@@ -112,6 +112,16 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 ![Heatmap: event × action choice, before vs. after training](evaluation/results/decision_heatmap_20260426.png)
 *Before training: agent clusters in accept/attend actions. After training: clear shift to async-boundary, no-clearly-kindly, and decline-async actions for high-energy-cost events.*
 
+### Train
+
+![Training graph](evaluation/results/train_20260426.png)
+*Training graph uploaded from the latest run. Replace this image with the exported training chart from your run artifacts.*
+
+### Profiling
+
+![Profiling graph](evaluation/results/profiling_20260426.png)
+*Profiling graph uploaded from the latest run. Replace this image with the exported profiling chart from your run artifacts.*
+
 ---
 
 ## Why This Matters
