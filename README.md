@@ -95,6 +95,8 @@ Evaluation summary (from [evaluation/results/evaluation_summary.json](evaluation
 - Mean reward from the real committed evaluation run: **random 0.679**, **greedy 0.946**, **trained_proxy 1.481**
 - Mean Friday energy (%): **random 62.28**, **greedy 81.08**, **trained_proxy 100.0**
 
+Note: Training reward (0.30-0.44) reflects per-step GRPO reward signals during optimization. Evaluation reward (1.481) reflects full episode scores from the evaluation harness, which uses a different scoring scale.
+
 For full GPU runs (real mode, WandB logging, and updated artifacts), use [training/train.ipynb](training/train.ipynb) and then replace files in [evaluation/results](evaluation/results) with the generated outputs.
 
 ### Reward Curve
@@ -232,6 +234,7 @@ python app.py
 ## Additional Materials
 
 - **HF Space submission URL:** https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
+- **HF Blog post:** https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen/blob/main/BLOG.md
 - **Trained Model:** https://huggingface.co/YUS200619/meta_hackathon-qwen-model
 - **Notebook with outputs:** [training/FINAL.ipynb](training/FINAL.ipynb)
 - **Training notebook:** [training/train.ipynb](training/train.ipynb)
