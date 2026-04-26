@@ -116,13 +116,13 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### Reward Curve
 
-![Reward curve from committed training artifact](evaluation/results/reward_curve.png)
-*Total episode reward vs. logged training steps from the committed artifact file.*
+![Training reward over steps](evaluation/results/reward_curve.png)
+*Training reward trajectory. The model steadily learns to surpass both the Random and Greedy baselines as it discovers the value of boundary-setting.*
 
-### Loss Curve
+### Training Diagnostics (Entropy & LR)
 
-![Loss curve over training steps](evaluation/results/loss_curve.png)
-*Training loss trend captured during run. This file is committed for automated validation.*
+![Training diagnostics: LR and Entropy](evaluation/results/loss_curve.png)
+*Entropy decline signals the model converging toward preferred action patterns, effectively learning which specific refusals maximize the long-term objective.*
 
 ### Component Breakdown
 
@@ -141,8 +141,8 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### Decision Heatmap
 
-![Heatmap: event × action choice, before vs. after training](evaluation/results/decision_heatmap.png)
-*Before training: agent clusters in accept/attend actions. After training: clear shift to async-boundary, no-clearly-kindly, and decline-async actions for high-energy-cost events.*
+![Decision heatmap — event × action · before vs after GRPO training](evaluation/results/decision_heatmap.png)
+*After training: clear shift from accept/attend → async-boundary & no-clearly-kindly for high-energy-cost events.*
 
 ### Train
 
