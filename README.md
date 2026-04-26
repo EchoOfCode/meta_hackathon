@@ -159,15 +159,6 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 WandB Report: https://wandb.ai/yusufindian09-aaa/meta_hackathon/reports/Work-Life-Firewall-Teaching-LLMs-to-Set-Boundaries-via-GRPO--VmlldzoxNjY3MjAzMw?accessToken=o0rb9cf0y4mw1n79aaalug265mplko9ak8t11mzyoi1lxpdbk9r9ev4cls6psn9y
 
 ![WandB training graph](evaluation/results/train_20260426.png)
-*Quick preview of the tracked run (always visible).* 
-
-<details>
-<summary>Expand to view WandB run graphs</summary>
-
-![WandB profiling graph](evaluation/results/profiling_20260426.png)
-*Profiler snapshot exported from the tracked run.*
-
-</details>
 
 ### Citation Index (Code and Evidence)
 
