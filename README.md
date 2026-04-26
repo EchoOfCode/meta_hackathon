@@ -208,6 +208,8 @@ python training/train.py --mode real --size-preset small --steps 30 --batch-size
 
 Use [training/train.ipynb](training/train.ipynb) inside Kaggle Notebooks (attach this repo as a dataset or clone it in /kaggle/working).
 
+**Live notebook:** https://www.kaggle.com/code/yus234019/notebookf26a326473
+
 ### Hugging Face (Model + Space)
 
 ```bash
