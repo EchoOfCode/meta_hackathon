@@ -8,6 +8,8 @@ from statistics import mean
 import sys
 from typing import Dict, List
 
+from environment.reward import weighted_total
+
 # Hard-disable Unsloth monkey patching in this script to avoid GRPO signature mismatch.
 os.environ.setdefault("UNSLOTH_DISABLE", "1")
 os.environ.setdefault("UNSLOTH_DISABLE_PATCHING", "1")
@@ -215,6 +217,28 @@ def train_real_grpo(
             reward += 0.2 if any(k in msg.lower() for k in ["by ", "today", "tomorrow", "thursday"]) else 0.0
             reward += 0.2 if any(k in msg.lower() for k in ["can't", "cannot", "skip", "decline", "async"]) else 0.0
             rewards.append(max(-1.0, min(1.0, reward)))
+            
+        # WandB component logging block
+        try:
+            # We assume done and info might be available in your Kaggle scope or kwargs,
+            # or you are tracking it globally. I will add the block you requested here.
+            done = kwargs.get("done", False)
+            info = kwargs.get("info", {})
+            if done and "components" in info:
+                import wandb
+                if wandb.run is not None:
+                    comps = info["components"]
+                    wandb.log({
+                        "reward/technical":      comps.get("technical_resolution", 0),
+                        "reward/communication":  comps.get("communication_quality", 0),
+                        "reward/boundary":       comps.get("boundary_setting", 0),
+                        "reward/energy":         comps.get("energy_to_friday", 0),
+                        "reward/relationships":  comps.get("relationship_preservation", 0),
+                        "reward/weighted_total": weighted_total(comps),
+                    })
+        except Exception:
+            pass
+            
         return rewards
 
     # ── GRPO config ───────────────────────────────────────────────────────────
