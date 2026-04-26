@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import time
+import traceback
 from functools import lru_cache
 from threading import Lock
 from typing import Dict, List, Tuple
@@ -92,17 +93,32 @@ def _cached_episode(policy_style: str, seed: int, randomize_order: bool) -> Tupl
 
 def run_episode(policy_style: str, seed: int, randomize_order: bool):
     _throttle_event_requests()
-    logs, state, components = _cached_episode(policy_style, seed, randomize_order)
-    summary = (
-        "### Outcome\n"
-        f"- Friday energy: **{state['energy_pct']}%**\n"
-        f"- Sprint health: **{state['sprint_health_pct']}%**\n"
-        f"- Leave status: **{state['leave_status']}**\n"
-    )
-    comp_rows = [[k, round(v, 3)] for k, v in sorted(components.items())]
-    if not comp_rows:
-        comp_rows = [["(none)", 0.0]]
-    return logs, summary, comp_rows
+    try:
+        logs, state, components = _cached_episode(policy_style, seed, randomize_order)
+        episode_log = "\n".join([
+            "Episode started.",
+            logs,
+        ])
+        summary = (
+            "### Outcome\n"
+            f"- Friday energy: **{state['energy_pct']}%**\n"
+            f"- Sprint health: **{state['sprint_health_pct']}%**\n"
+            f"- Leave status: **{state['leave_status']}**\n"
+        )
+        comp_rows = [[k, round(v, 3)] for k, v in sorted(components.items())]
+        if not comp_rows:
+            comp_rows = [["(none)", 0.0]]
+        return episode_log, summary, comp_rows
+    except Exception as exc:
+        episode_log = "Episode failed:\n" + "".join(
+            traceback.format_exception(type(exc), exc, exc.__traceback__)
+        )
+        summary = (
+            "### Outcome\n"
+            f"- Error: **{type(exc).__name__}**\n"
+            f"- Message: **{exc}**\n"
+        )
+        return episode_log, summary, [["error", 1.0]]
 
 
 def compare_policies(seed: int, randomize_order: bool):
