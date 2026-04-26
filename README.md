@@ -67,18 +67,33 @@ Actions have **energy cost**, **sprint health impact**, **relationship effects**
 
 ## Latest Committed Results (Evidence Files)
 
-The repository includes run artifacts under [evaluation/results](evaluation/results):
+All claims in this section are derived from committed files under [evaluation/results](evaluation/results). The environment and training code used to generate these artifacts are linked in the citation list below.
+
+Primary evidence files:
 
 - [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json)
 - [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)
-- 5 generated plots (reward, loss, component breakdown, energy trajectory, decision heatmap)
+- [evaluation/results/reward_curve.png](evaluation/results/reward_curve.png)
+- [evaluation/results/loss_curve.png](evaluation/results/loss_curve.png)
+- [evaluation/results/component_breakdown.png](evaluation/results/component_breakdown.png)
+- [evaluation/results/energy_trajectory.png](evaluation/results/energy_trajectory.png)
+- [evaluation/results/decision_heatmap.png](evaluation/results/decision_heatmap.png)
+- [evaluation/results/train_20260426.png](evaluation/results/train_20260426.png)
+- [evaluation/results/profiling_20260426.png](evaluation/results/profiling_20260426.png)
 
-From the currently committed evidence files:
+Run configuration summary (from [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json)):
 
-- Training metrics mode: **simulate**
-- Training reward progression: **1.481 → 2.181** over 8 logged steps
-- Evaluation episodes per policy: **6**
-- Mean reward: **random 0.760**, **greedy 0.944**, **trained_proxy 1.481**
+- Training mode: **real**
+- Steps: **300**
+- Model: **Qwen/Qwen2.5-1.5B-Instruct**
+- Runtime: **3432.34 seconds** (~57.2 minutes)
+- Reward curve: **min 0.30**, **max 0.44**, **mean 0.370**
+
+Evaluation summary (from [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)):
+
+- Episodes per policy: **50**
+- Mean reward: **random 0.679**, **greedy 0.946**, **trained_proxy 1.481**
+- Mean Friday energy (%): **random 62.28**, **greedy 81.08**, **trained_proxy 100.0**
 
 For full GPU runs (real mode, WandB logging, and updated artifacts), use [training/train.ipynb](training/train.ipynb) and then replace files in [evaluation/results](evaluation/results) with the generated outputs.
 
@@ -115,12 +130,21 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 ### Train
 
 ![Training graph](evaluation/results/train_20260426.png)
-*Training graph uploaded from the latest run. Replace this image with the exported training chart from your run artifacts.*
+*Training dashboard screenshot from the real run (committed artifact).*
 
 ### Profiling
 
 ![Profiling graph](evaluation/results/profiling_20260426.png)
-*Profiling graph uploaded from the latest run. Replace this image with the exported profiling chart from your run artifacts.*
+*Profiler timing panels from GRPO training (committed artifact).*
+
+### Citation Index (Code and Evidence)
+
+- Environment entrypoint: [openenv.yaml](openenv.yaml), [environment/env.py](environment/env.py)
+- Reward and consequences logic: [environment/reward.py](environment/reward.py), [environment/consequences.py](environment/consequences.py)
+- Training pipeline: [training/train.py](training/train.py), [training/train.ipynb](training/train.ipynb), [training/rollout.py](training/rollout.py)
+- Evaluation pipeline: [evaluation/evaluate.py](evaluation/evaluate.py), [evaluation/plot_results.py](evaluation/plot_results.py)
+- Committed metrics: [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json), [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)
+- Live demo app: [app.py](app.py)
 
 ---
 
@@ -214,7 +238,7 @@ python app.py
 
 - Public HF Space URL is provided and intended for logged-out access: https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
 - OpenEnv entrypoint and config are included: [openenv.yaml](openenv.yaml), [environment/env.py](environment/env.py)
-- Training evidence images are committed: [evaluation/results/reward_curve_20260426.png](evaluation/results/reward_curve_20260426.png), [evaluation/results/loss_curve_20260426.png](evaluation/results/loss_curve_20260426.png)
+- Training evidence images are committed: [evaluation/results/reward_curve.png](evaluation/results/reward_curve.png), [evaluation/results/loss_curve.png](evaluation/results/loss_curve.png), [evaluation/results/train_20260426.png](evaluation/results/train_20260426.png), [evaluation/results/profiling_20260426.png](evaluation/results/profiling_20260426.png)
 - Raw metrics evidence is committed: [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json), [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)
 - Runnable training artifacts are included: [training/train.py](training/train.py), [training/train.ipynb](training/train.ipynb)
 - README links core deliverables directly so validator can discover them from one page
