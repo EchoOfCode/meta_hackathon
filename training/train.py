@@ -8,7 +8,7 @@ from statistics import mean
 import sys
 from typing import Dict, List
 
-from environment.reward import weighted_total
+
 
 # Hard-disable Unsloth monkey patching in this script to avoid GRPO signature mismatch.
 os.environ.setdefault("UNSLOTH_DISABLE", "1")
@@ -25,6 +25,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from environment.env import WorkLifeFirewallEnv
+from environment.reward import weighted_total
 from training.rollout import build_prompt, run_rule_based_episode
 
 
