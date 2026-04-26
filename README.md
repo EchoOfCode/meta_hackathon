@@ -139,6 +139,21 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 ![Profiling graph](evaluation/results/profiling_20260426.png)
 *Profiler timing panels from GRPO training (committed artifact).*
 
+### WandB Graphs (Collapsible)
+
+<details>
+<summary>Expand to view WandB run graphs</summary>
+
+Direct run URL: https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
+
+![WandB training graph](evaluation/results/train_20260426.png)
+*Training metrics snapshot exported from the tracked run.*
+
+![WandB profiling graph](evaluation/results/profiling_20260426.png)
+*Profiler snapshot exported from the tracked run.*
+
+</details>
+
 ### Citation Index (Code and Evidence)
 
 - Environment entrypoint: [openenv.yaml](openenv.yaml), [environment/env.py](environment/env.py)
@@ -182,6 +197,7 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 - Model family: `Qwen2.5-Instruct` (size preset selectable: small / medium / large)
 - Quantization: default 4-bit path with optional `--no-4bit` fallback for runtime stability
 - WandB project: https://wandb.ai/yusufindian09-aaa/meta_hackathon
+- WandB run (direct): https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
 
 ### Running It
 
