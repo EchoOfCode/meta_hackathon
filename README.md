@@ -88,19 +88,6 @@ Primary evidence files:
 - [evaluation/results/energy_trajectory.png](evaluation/results/energy_trajectory.png)
 - [evaluation/results/decision_heatmap.png](evaluation/results/decision_heatmap.png)
 
-### Visual Evidence of Learning
-
-<p align="center">
-  <img src="evaluation/results/loss_curve.png" width="48%" alt="Training diagnostics: LR and Entropy">
-  <img src="evaluation/results/reward_curve.png" width="48%" alt="Training reward over steps">
-</p>
-<p align="center">
-  <em>Left: Entropy decline signals the model converging toward preferred action patterns. Right: Training reward trajectory surpassing Random and Greedy baselines.</em>
-</p>
-
-![Decision heatmap — event × action · before vs after GRPO training](evaluation/results/decision_heatmap.png)
-*After training: clear shift from accept/attend → async-boundary & no-clearly-kindly for high-energy-cost events.*
-
 ### Quantitative Baseline Comparison
 
 We evaluated 3 distinct agents across **50 full-week episodes**:
@@ -127,6 +114,16 @@ We evaluated 3 distinct agents across **50 full-week episodes**:
 
 For full GPU runs (real mode, WandB logging, and updated artifacts), use [training/train.ipynb](training/train.ipynb) and then replace files in [evaluation/results](evaluation/results) with the generated outputs.
 
+### Reward Curve
+
+![Reward curve from committed training artifact](evaluation/results/reward_curve.png)
+*Total episode reward vs. logged training steps from the committed artifact file.*
+
+### Loss Curve
+
+![Loss curve over training steps](evaluation/results/loss_curve.png)
+*Training loss trend captured during run. This file is committed for automated validation.*
+
 ### Component Breakdown
 
 ![Radar chart showing 5 rubric components before and after training](evaluation/results/component_breakdown.png)
@@ -141,6 +138,12 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 - Training log: [evaluation/results/training_metrics.json](evaluation/results/training_metrics.json)
 - Evaluation summary: [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)
+
+### Decision Heatmap
+
+![Heatmap: event × action choice, before vs. after training](evaluation/results/decision_heatmap.png)
+*Before training: agent clusters in accept/attend actions. After training: clear shift to async-boundary, no-clearly-kindly, and decline-async actions for high-energy-cost events.*
+
 ### Train
 
 ![Training graph](evaluation/results/train_20260426.png)
@@ -153,9 +156,18 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### WandB Graphs
 
-Direct run URL: https://wandb.ai/yusufindian09-aaa/meta_hackathon/reports/Work-Life-Firewall-Teaching-LLMs-to-Set-Boundaries-via-GRPO--VmlldzoxNjY3MjAzMw?accessToken=o0rb9cf0y4mw1n79aaalug265mplko9ak8t11mzyoi1lxpdbk9r9ev4cls6psn9y
+Direct run URL: https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
 
+![WandB training graph](evaluation/results/train_20260426.png)
+*Quick preview of the tracked run (always visible).* 
 
+<details>
+<summary>Expand to view WandB run graphs</summary>
+
+![WandB profiling graph](evaluation/results/profiling_20260426.png)
+*Profiler snapshot exported from the tracked run.*
+
+</details>
 
 ### Citation Index (Code and Evidence)
 
@@ -200,7 +212,7 @@ Direct run URL: https://wandb.ai/yusufindian09-aaa/meta_hackathon/reports/Work-L
 - Model family: `Qwen2.5-Instruct` (size preset selectable: small / medium / large)
 - Quantization: default 4-bit path with optional `--no-4bit` fallback for runtime stability
 - WandB project: https://wandb.ai/yusufindian09-aaa/meta_hackathon
-- WandB report: https://wandb.ai/yusufindian09-aaa/meta_hackathon/reports/Work-Life-Firewall-Teaching-LLMs-to-Set-Boundaries-via-GRPO--VmlldzoxNjY3MjAzMw?accessToken=o0rb9cf0y4mw1n79aaalug265mplko9ak8t11mzyoi1lxpdbk9r9ev4cls6psn9y
+- WandB run (direct): https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
 
 ### Running It
 
