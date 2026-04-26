@@ -97,10 +97,10 @@ We evaluated 3 distinct agents across **50 full-week episodes**:
 
 | Metric | Random | Untrained (Greedy) | **Trained Agent** |
 |---|---|---|---|
-| **Mean Episode Reward** | 0.679 | 0.946 | **1.481** |
-| **Mean Friday Energy** | 62.28% | 81.08% | **100.0%** |
-| **Technical Resolution** | 0.560 | 1.000 | **1.000** |
-| **Boundary Setting** | 0.283 | 0.350 | **0.750** |
+| **Mean Episode Reward** | 1.924 | 2.498 | **3.034** |
+| **Mean Friday Energy** | 66.44% | 81.08% | **100.0%** |
+| **Technical Resolution** | 0.690 | 1.000 | **1.000** |
+| **Boundary Setting** | 0.540 | 0.600 | **1.000** |
 
 **Qualitative Shift:** The trained agent learned that while "fixing things directly" yields high immediate technical scores, it destroys Wednesday/Thursday energy. The `decision_heatmap.png` explicitly shows the trained agent shifting its strategy to use `async_boundary` and `decline_async` for high-energy-cost events early in the week, allowing it to survive until Friday with 100% energy.
 
