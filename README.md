@@ -72,6 +72,13 @@ GRPO fits because the agent doesn't pick from a menu — it writes actual messag
 
 ---
 
+## Workflow
+
+![Meta Hackathon Workflow](meta_hackathon_workflow.svg)
+*High-level overview of the environment flow and evaluation cycle.*
+
+---
+
 ## Real Training: End-to-End Validation
 
 > **Addressing the Hackathon Criteria:** We don't just provide a training script. Our training loop connects directly to the `WorkLifeFirewallEnv` environment dynamically during GRPO rollouts (no static datasets). We trained the agent long enough to see meaningful convergence, and the results below prove that the agent learned a robust strategy compared to a random or untrained baseline.
