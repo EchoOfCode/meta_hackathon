@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import os
+import time
+from functools import lru_cache
+from threading import Lock
 from typing import Dict, List, Tuple
 
 import gradio as gr
 
 from environment.env import WorkLifeFirewallEnv
+
+
+MIN_EVENT_INTERVAL_SECONDS = float(os.getenv("MIN_EVENT_INTERVAL_SECONDS", "0.75"))
+_RATE_LIMIT_LOCK = Lock()
+_LAST_EVENT_TS = 0.0
 
 
 def _action_for_policy(policy_style: str, event_id: str) -> str:
@@ -66,8 +74,25 @@ def _run_single_episode(policy_style: str, seed: int, randomize_order: bool) -> 
     return "\n".join(logs), state, components
 
 
+def _throttle_event_requests() -> None:
+    global _LAST_EVENT_TS
+    with _RATE_LIMIT_LOCK:
+        now = time.monotonic()
+        remaining = MIN_EVENT_INTERVAL_SECONDS - (now - _LAST_EVENT_TS)
+        if remaining > 0:
+            time.sleep(remaining)
+        _LAST_EVENT_TS = time.monotonic()
+
+
+@lru_cache(maxsize=256)
+def _cached_episode(policy_style: str, seed: int, randomize_order: bool) -> Tuple[str, Dict[str, object], Dict[str, float]]:
+    # Cache deterministic episodes so repeated button clicks do not trigger repeated backend work.
+    return _run_single_episode(policy_style, seed, randomize_order)
+
+
 def run_episode(policy_style: str, seed: int, randomize_order: bool):
-    logs, state, components = _run_single_episode(policy_style, seed, randomize_order)
+    _throttle_event_requests()
+    logs, state, components = _cached_episode(policy_style, seed, randomize_order)
     summary = (
         "### Outcome\n"
         f"- Friday energy: **{state['energy_pct']}%**\n"
@@ -81,9 +106,10 @@ def run_episode(policy_style: str, seed: int, randomize_order: bool):
 
 
 def compare_policies(seed: int, randomize_order: bool):
+    _throttle_event_requests()
     rows = []
     for policy in ["strategic", "balanced", "people_pleaser"]:
-        _, state, components = _run_single_episode(policy, seed, randomize_order)
+        _, state, components = _cached_episode(policy, seed, randomize_order)
         rows.append([
             policy,
             state["energy_pct"],
@@ -167,6 +193,7 @@ with gr.Blocks(title="Work-Life Firewall") as demo:
 
 if __name__ == "__main__":
     on_hugging_face_space = bool(os.getenv("SPACE_ID"))
+    demo.queue(default_concurrency_limit=1, max_size=32)
     demo.launch(
         server_name="0.0.0.0",
         server_port=int(os.getenv("PORT", "7860")),
