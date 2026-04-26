@@ -53,7 +53,7 @@ class WorkLifeFirewallEnv(Environment):
         done = self._idx >= len(self._events) or self._state.energy <= 0.05
         if done:
             comps = component_scores(self._state, self._state.decisions)
-            terminal = weighted_total(comps)
+            terminal = self._calculate_terminal_reward()
             info = {"episode_complete": True, "components": comps}
             return self._state.to_observation(), round(step_reward + terminal, 4), True, info
 
@@ -98,8 +98,38 @@ class WorkLifeFirewallEnv(Environment):
         return selected["id"], selected
 
     def _step_reward(self, decision: Dict, action_data: Dict) -> float:
-        energy = float(action_data.get("energy_delta", 0.0))
-        sprint = float(action_data.get("sprint_delta", 0.0))
-        rel_penalty = sum(abs(v) for v in action_data.get("relationship_delta", {}).values()) * 0.08
+        reward = 0.0
+        
+        # Energy delta contributes to reward
+        energy_delta = float(action_data.get("energy_delta", 0.0))
+        reward += energy_delta * 0.5
+        
+        # Sprint delta contributes
+        sprint_delta = float(action_data.get("sprint_delta", 0.0))
+        reward += sprint_delta * 0.3
+        
+        # Relationship preservation contributes
+        rel_sum = sum(abs(v) for v in action_data.get("relationship_delta", {}).values())
+        reward -= rel_sum * 0.1
+        
+        # Comm bonus
         comm_bonus = decision.get("message_quality", 0.0) * 0.12
-        return energy * 0.5 + sprint * 0.4 - rel_penalty + comm_bonus
+        reward += comm_bonus
+        
+        return reward
+
+    def _calculate_terminal_reward(self) -> float:
+        """Sparse terminal reward at episode end matching PRD storytelling."""
+        reward = 0.0
+        s = self._state
+        
+        if s.sprint_health >= 0.70: reward += 1.0
+        if s.staging_fixed: reward += 0.3
+        if s.leave_status == "approved": reward += 0.3
+        if s.appraisal_done: reward += 0.2
+        if s.energy >= 0.60: reward += 0.3
+        if s.energy < 0.30: reward -= 0.5
+        if s.relationships.david_chen >= 0.70: reward += 0.2
+        if not s.oncall_accepted: reward += 0.15
+        
+        return reward

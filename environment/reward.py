@@ -25,22 +25,29 @@ def communication_quality_score(decisions: List[Dict]) -> float:
 def boundary_setting_score(decisions: List[Dict]) -> float:
     if not decisions:
         return 0.0
-    strategic = {"no_clearly_kindly", "decline_async", "async_boundary", "counter_offer"}
+    strategic = {"no_clearly_kindly", "decline_async", "async_boundary", "counter_offer", "acknowledge_timeline"}
     people_pleasing = {"yes_people_pleaser", "attend_sacrifice", "both_calls_now"}
-    held = sum(1 for d in decisions if d["action_id"] in strategic)
-    leaked = sum(1 for d in decisions if d["action_id"] in people_pleasing)
+    held = sum(1 for d in decisions if d.get("action_id") in strategic)
+    leaked = sum(1 for d in decisions if d.get("action_id") in people_pleasing)
     return max(0.0, min(1.0, held / 4.0 - 0.15 * leaked))
 
 
 def energy_to_friday_score(state: EpisodeState) -> float:
-    return state.energy
+    if state.energy >= 0.70:
+        return 1.0
+    elif state.energy >= 0.50:
+        return 0.65
+    elif state.energy >= 0.30:
+        return 0.30
+    else:
+        return 0.0
 
 
 def relationship_preservation_score(state: EpisodeState) -> float:
     rels = vars(state.relationships)
     mean_rel = sum(rels.values()) / len(rels)
     client = state.relationships.david_chen
-    return max(0.0, min(1.0, 0.6 * mean_rel + 0.4 * client))
+    return max(0.0, min(1.0, (mean_rel + client * 1.5) / 2.5))
 
 
 def component_scores(state: EpisodeState, decisions: List[Dict]) -> Dict[str, float]:
