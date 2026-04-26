@@ -156,7 +156,7 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### WandB Graphs
 
-Direct run URL: https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
+WandB Report: https://wandb.ai/yusufindian09-aaa/meta_hackathon/reports/Work-Life-Firewall-Teaching-LLMs-to-Set-Boundaries-via-GRPO--VmlldzoxNjY3MjAzMw?accessToken=o0rb9cf0y4mw1n79aaalug265mplko9ak8t11mzyoi1lxpdbk9r9ev4cls6psn9y
 
 ![WandB training graph](evaluation/results/train_20260426.png)
 *Quick preview of the tracked run (always visible).* 
@@ -212,7 +212,7 @@ Direct run URL: https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
 - Model family: `Qwen2.5-Instruct` (size preset selectable: small / medium / large)
 - Quantization: default 4-bit path with optional `--no-4bit` fallback for runtime stability
 - WandB project: https://wandb.ai/yusufindian09-aaa/meta_hackathon
-- WandB run (direct): https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
+- WandB Report: https://wandb.ai/yusufindian09-aaa/meta_hackathon/reports/Work-Life-Firewall-Teaching-LLMs-to-Set-Boundaries-via-GRPO--VmlldzoxNjY3MjAzMw?accessToken=o0rb9cf0y4mw1n79aaalug265mplko9ak8t11mzyoi1lxpdbk9r9ev4cls6psn9y
 
 ### Running It
 
