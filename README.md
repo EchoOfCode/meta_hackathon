@@ -141,13 +141,13 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### WandB Graphs (Collapsible)
 
-<details>
-<summary>Expand to view WandB run graphs</summary>
-
 Direct run URL: https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
 
 ![WandB training graph](evaluation/results/train_20260426.png)
-*Training metrics snapshot exported from the tracked run.*
+*Quick preview of the tracked run (always visible).* 
+
+<details>
+<summary>Expand to view WandB run graphs</summary>
 
 ![WandB profiling graph](evaluation/results/profiling_20260426.png)
 *Profiler snapshot exported from the tracked run.*
