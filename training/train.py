@@ -208,37 +208,63 @@ def train_real_grpo(
         tokenizer.pad_token = tokenizer.eos_token
 
     # ── reward function ───────────────────────────────────────────────────────
-    def reward_funcs(completions, **kwargs):
+    def reward_funcs(completions, prompts=None, **kwargs):
+        import sys
+        from pathlib import Path
+        ROOT = Path(__file__).resolve().parents[1]
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        
+        from environment.env import WorkLifeFirewallEnv
+        from environment.reward import weighted_total
+        
         rewards = []
-        for text in completions:
-            msg = text if isinstance(text, str) else str(text)
-            reward = 0.1
-            reward += 0.2 if len(msg.split()) >= 20 else -0.05
-            reward += 0.2 if any(k in msg.lower() for k in ["by ", "today", "tomorrow", "thursday"]) else 0.0
-            reward += 0.2 if any(k in msg.lower() for k in ["can't", "cannot", "skip", "decline", "async"]) else 0.0
-            rewards.append(max(-1.0, min(1.0, reward)))
-            
-        # WandB component logging block
-        try:
-            # We assume done and info might be available in your Kaggle scope or kwargs,
-            # or you are tracking it globally. I will add the block you requested here.
-            done = kwargs.get("done", False)
-            info = kwargs.get("info", {})
-            if done and "components" in info:
-                import wandb
-                if wandb.run is not None:
-                    comps = info["components"]
-                    wandb.log({
-                        "reward/technical":      comps.get("technical_resolution", 0),
-                        "reward/communication":  comps.get("communication_quality", 0),
-                        "reward/boundary":       comps.get("boundary_setting", 0),
-                        "reward/energy":         comps.get("energy_to_friday", 0),
-                        "reward/relationships":  comps.get("relationship_preservation", 0),
-                        "reward/weighted_total": weighted_total(comps),
-                    })
-        except Exception:
-            pass
-            
+        
+        for i, completion in enumerate(completions):
+            try:
+                env = WorkLifeFirewallEnv(randomize_order=True, seed=i)
+                obs = env.reset()
+                
+                # Step through all 7 events using the completion as the action
+                total_reward = 0.0
+                done = False
+                step_count = 0
+                
+                while not done and step_count < 7:
+                    _, step_reward, done, info = env.step(completion)
+                    total_reward += step_reward
+                    step_count += 1
+                
+                # Normalize to [-1, 1] range GRPO expects
+                normalized = max(-1.0, min(1.0, total_reward / 3.0))
+                rewards.append(normalized)
+                
+                # Log components to WandB if available
+                if done and "components" in info:
+                    try:
+                        import wandb
+                        if wandb.run is not None:
+                            comps = info["components"]
+                            wandb.log({
+                                "reward/technical":      comps.get("technical_resolution", 0),
+                                "reward/communication":  comps.get("communication_quality", 0),
+                                "reward/boundary":       comps.get("boundary_setting", 0),
+                                "reward/energy":         comps.get("energy_to_friday", 0),
+                                "reward/relationships":  comps.get("relationship_preservation", 0),
+                                "reward/weighted_total": weighted_total(comps),
+                            })
+                    except Exception:
+                        pass
+                        
+            except Exception as e:
+                # Fallback to keyword heuristic if env fails
+                msg = completion.lower() if isinstance(completion, str) else ""
+                r = 0.1
+                r += 0.2 if any(k in msg for k in ["can't", "cannot", "skip", "decline", "async"]) else 0.0
+                r += 0.2 if any(k in msg for k in ["by ", "today", "tomorrow", "thursday"]) else 0.0
+                r += 0.2 if len(msg.split()) >= 20 else 0.0
+                rewards.append(max(-1.0, min(1.0, r)))
+        
         return rewards
 
     # ── GRPO config ───────────────────────────────────────────────────────────
