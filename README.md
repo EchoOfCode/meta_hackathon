@@ -84,22 +84,22 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### Reward Curve
 
-![Reward curve from committed training artifact](evaluation/results/reward_curve_20260426.png)
+![Reward curve from committed training artifact](evaluation/results/reward_curve.png)
 *Total episode reward vs. logged training steps from the committed artifact file.*
 
 ### Loss Curve
 
-![Loss curve over training steps](evaluation/results/loss_curve_20260426.png)
+![Loss curve over training steps](evaluation/results/loss_curve.png)
 *Training loss trend captured during run. This file is committed for automated validation.*
 
 ### Component Breakdown
 
-![Radar chart showing 5 rubric components before and after training](evaluation/results/component_breakdown_20260426.png)
+![Radar chart showing 5 rubric components before and after training](evaluation/results/component_breakdown.png)
 *Rubric component comparison generated from evaluation logs (technical resolution, communication quality, boundary setting, energy to Friday, relationship preservation).*
 
 ### Energy Trajectory (Monday → Friday)
 
-![Line chart: agent energy across the week, 3 agents overlaid](evaluation/results/energy_trajectory_20260426.png)
+![Line chart: agent energy across the week, 3 agents overlaid](evaluation/results/energy_trajectory.png)
 *Day-wise energy trajectory (Monday to Friday) across evaluated policy variants from the committed summary JSON.*
 
 ### Raw Evidence JSON
@@ -109,7 +109,7 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 
 ### Decision Heatmap
 
-![Heatmap: event × action choice, before vs. after training](evaluation/results/decision_heatmap_20260426.png)
+![Heatmap: event × action choice, before vs. after training](evaluation/results/decision_heatmap.png)
 *Before training: agent clusters in accept/attend actions. After training: clear shift to async-boundary, no-clearly-kindly, and decline-async actions for high-energy-cost events.*
 
 ### Train
