@@ -92,7 +92,7 @@ Run configuration summary (from [evaluation/results/training_metrics.json](evalu
 Evaluation summary (from [evaluation/results/evaluation_summary.json](evaluation/results/evaluation_summary.json)):
 
 - Episodes per policy: **50**
-- Mean reward: **random 0.679**, **greedy 0.946**, **trained_proxy 1.481**
+- Mean reward from the real committed evaluation run: **random 0.679**, **greedy 0.946**, **trained_proxy 1.481**
 - Mean Friday energy (%): **random 62.28**, **greedy 81.08**, **trained_proxy 100.0**
 
 For full GPU runs (real mode, WandB logging, and updated artifacts), use [training/train.ipynb](training/train.ipynb) and then replace files in [evaluation/results](evaluation/results) with the generated outputs.
@@ -195,7 +195,7 @@ python -m examples.greedy_agent --episodes 50
 
 # Training (requires GPU)
 # Kaggle Notebook entrypoint:
-python training/train.py --mode simulate --steps 1000
+python training/train.py --mode real --speed-preset fast --size-preset small --steps 50 --run-name meta-kaggle-final --wandb-project meta_hackathon
 
 # Real GRPO run on Kaggle GPU
 python training/train.py --mode real --steps 300 --run-name wlf-kaggle-grpo
