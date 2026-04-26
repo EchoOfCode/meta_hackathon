@@ -139,7 +139,7 @@ For full GPU runs (real mode, WandB logging, and updated artifacts), use [traini
 ![Profiling graph](evaluation/results/profiling_20260426.png)
 *Profiler timing panels from GRPO training (committed artifact).*
 
-### WandB Graphs (Collapsible)
+### WandB Graphs
 
 Direct run URL: https://api.wandb.ai/links/yusufindian09-aaa/1lyd3t3t
 
