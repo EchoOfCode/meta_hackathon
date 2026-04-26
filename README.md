@@ -262,6 +262,7 @@ python app.py
 
 ## Additional Materials
 
+- **Live Kaggle Notebook:** https://www.kaggle.com/code/yus234019/notebookf26a326473
 - **HF Space submission URL:** https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
 - **HF Blog post:** https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen/blob/main/BLOG.md
 - **Trained Model:** https://huggingface.co/YUS200619/meta_hackathon-qwen-model
