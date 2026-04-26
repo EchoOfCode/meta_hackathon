@@ -231,8 +231,9 @@ python app.py
 
 ## Additional Materials
 
-- **HF Space (live demo):** https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
+- **HF Space submission URL:** https://huggingface.co/spaces/YUS200619/meta_hackathon-qwen
 - **Trained Model:** https://huggingface.co/YUS200619/meta_hackathon-qwen-model
+- **Notebook with outputs:** [training/FINAL.ipynb](training/FINAL.ipynb)
 - **Training notebook:** [training/train.ipynb](training/train.ipynb)
 - **Project writeup:** [PRD.md](PRD.md)
 - **Implementation details:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)

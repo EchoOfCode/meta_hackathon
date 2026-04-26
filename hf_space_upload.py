@@ -33,6 +33,12 @@ def upload_all() -> None:
         repo_id=REPO_ID,
         repo_type="space",
     )
+    api.upload_file(
+        path_or_fileobj=str(ROOT / "training" / "FINAL.ipynb"),
+        path_in_repo="training/FINAL.ipynb",
+        repo_id=REPO_ID,
+        repo_type="space",
+    )
     api.upload_folder(
         folder_path=str(ROOT / "environment"),
         path_in_repo="environment",
