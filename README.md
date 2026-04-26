@@ -51,6 +51,13 @@ The agent writes a free-text response — the actual message it would send, or t
 
 Actions have **energy cost**, **sprint health impact**, **relationship effects**, and may **spawn follow-on events** (e.g., saying yes to on-call spawns a Wednesday collapse event).
 
+
+### WHY RL IS THE RIGHT MODEL HERE
+
+The agent has to discover the specific set of strategic refusals that thread all five reward components simultaneously — and the only way to find that needle is through exploration, failure, and a reward signal that remembers what happened three days ago.
+GRPO fits because the agent doesn't pick from a menu — it writes actual messages. The training signal shapes how it writes, not just what category it selects. Communication quality becomes learnable, not just assumed.
+The result: an agent that learned what every burned-out engineer had to learn the hard way — but in 300 steps instead of three years.
+
 ### Reward Function (5-component Rubric)
 
 | Component | Weight | What it measures |
